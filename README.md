@@ -84,13 +84,13 @@ npm run preview
 ### Build Chrome
 
 ```sh
-npm run build:chrome
+$env:PROJECT="chrome"; npm run build
 ```
 
 ### Build Firefox
 
 ```sh
-npm run build:firefox
+$env:PROJECT="firefox"; npm run build
 ```
 
 ## License
