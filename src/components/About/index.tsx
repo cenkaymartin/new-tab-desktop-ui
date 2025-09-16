@@ -8,21 +8,21 @@ export function About() {
   return (
     <div className="About">
       <div className="logo">
-        <img src={logo} width="128" height="128" alt="Easy Speed Dial" />
+        <img src={logo} width="128" height="128" alt="Easy Speed Dial v3" />
         <div className="right">
           <p className="title">Easy Speed Dial</p>
           <p className="small">Version {appVersion}</p>
           <p>
             Need help? Email{" "}
-            <a href="mailto:support@easyspeeddial.com">
-              support@easyspeeddial.com
+            <a href="mailto:cenkaymartin@gmail.com">
+              cenkaymartin@gmail.com
             </a>
             .
           </p>
           <p>
             Find a bug? Please report it to the{" "}
             <a
-              href="https://github.com/lucaseverett/easy-speed-dial"
+              href="https://github.com/cenkaymartin/easy-speed-dial-v3"
               rel="noreferrer"
               target="_blank"
             >
@@ -34,10 +34,14 @@ export function About() {
       </div>
       <div className="details">
         <p className="copyright">
-          <a href="https://easyspeeddial.com/" rel="noreferrer" target="_blank">
-            Easy Speed Dial
+          <a href="https://github.com/cenkaymartin/easy-speed-dial-v3" rel="noreferrer" target="_blank">
+            Easy Speed Dial v3
           </a>{" "}
-          was created by and is maintained by{" "}
+          was created by{" "}
+          <a href="https://github.com/cenkaymartin" rel="noreferrer" target="_blank">
+            Cenkay Martin
+          </a>{" "}
+          and originally by{" "}
           <a href="https://lucaseverett.dev/" rel="noreferrer" target="_blank">
             Lucas Everett
           </a>
@@ -47,7 +51,7 @@ export function About() {
           Copyright &copy; 2018-{new Date().getFullYear()} Lucas Everett.
           Released under the{" "}
           <a
-            href="https://github.com/lucaseverett/easy-speed-dial/blob/main/LICENSE"
+            href="https://github.com/cenkaymartin/easy-speed-dial-v3/blob/main/LICENSE"
             rel="noreferrer"
             target="_blank"
           >

@@ -20,6 +20,7 @@ export const SettingsContent = observer(function SettingsContent() {
     handleCustomImage,
     handleDefaultFolder,
     handleDialSize,
+    handleGridLayout,
     handleMaxColumns,
     handleNewTab,
     handleShowTitle,
@@ -34,9 +35,10 @@ export const SettingsContent = observer(function SettingsContent() {
   } = settings;
 
   const [defaultFolderValue, setDefaultFolderValue] = useState("");
+  
   const wallpaperColors = [
-    "Light",
     "Dark",
+    "Light", 
     "Brown",
     "Blue",
     "Yellow",
@@ -74,7 +76,7 @@ export const SettingsContent = observer(function SettingsContent() {
           Choose a background color or image.
         </div>
         <div className="setting-option wallpapers">
-          {/* Color wallpapers */}
+          {}
           {wallpaperColors.map((wallpaper) => (
             <button
               type="button"
@@ -201,6 +203,31 @@ export const SettingsContent = observer(function SettingsContent() {
       </div>
       <div className="setting-wrapper setting-group">
         <div className="setting-label">
+          <div className="setting-title" id="grid-layout-title">
+            Grid Layout
+          </div>
+          <div className="setting-description" id="grid-layout-description">
+            Choose the grid layout for organizing your bookmarks into panels.
+          </div>
+        </div>
+        <div className="setting-option select">
+          <select
+            onChange={(e) => handleGridLayout(e.target.value)}
+            value={settings.gridLayout as string}
+            className="input"
+            aria-labelledby="grid-layout-title"
+            aria-describedby="grid-layout-description"
+          >
+            <option value="2-panel">2 Panels</option>
+            <option value="3-panel">3 Panels</option>
+            <option value="4-panel">4 Panels</option>
+            <option value="full-screen">Full Screen</option>
+          </select>
+          <CaretDown />
+        </div>
+      </div>
+      <div className="setting-wrapper setting-group">
+        <div className="setting-label">
           <div className="setting-title" id="color-scheme-title">
             Color Scheme
           </div>
@@ -307,6 +334,7 @@ export const SettingsContent = observer(function SettingsContent() {
             aria-describedby="dial-size-description"
           >
             {[
+              { label: "Extra Tiny", value: "extra-tiny" },
               { label: "Tiny", value: "tiny" },
               { label: "Small", value: "small" },
               { label: "Medium", value: "medium" },

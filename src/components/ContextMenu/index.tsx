@@ -411,15 +411,49 @@ function handleCopyURL() {
 
 function handleDeleteBookmark() {
   contextMenu.closeContextMenu();
-  if (contextMenu.focusAfterClosed?.dataset.id) {
-    bookmarks.deleteBookmark(contextMenu.focusAfterClosed.dataset.id);
+  
+  const bookmarkId = contextMenu.focusAfterClosed?.dataset.id;
+  if (!bookmarkId) return;
+
+  const panelManager = (window as any).panelBookmarkManager;
+  
+  if (panelManager && panelManager.isPanelBookmark(bookmarkId)) {
+    panelManager.deletePanelBookmark(bookmarkId);
+  } else {
+    bookmarks.deleteBookmark(bookmarkId);
   }
 }
 
 function handleDeleteFolder() {
   contextMenu.closeContextMenu();
-  if (contextMenu.focusAfterClosed?.dataset.id) {
-    bookmarks.deleteFolder(contextMenu.focusAfterClosed.dataset.id);
+  
+  const folderId = contextMenu.focusAfterClosed?.dataset.id;
+  if (!folderId) {
+    console.warn('Folder ID not found');
+    return;
+  }
+
+  console.log('Deleting folder with ID:', folderId);
+  
+  const panelManager = (window as any).panelBookmarkManager;
+  
+  if (panelManager) {
+    if (panelManager.deletePanelFolder && panelManager.deletePanelFolder(folderId)) {
+      console.log('Folder deleted via panel manager');
+      return;
+    }
+    
+    if (panelManager.deletePanelBookmark && panelManager.deletePanelBookmark(folderId)) {
+      console.log('Folder deleted via panel bookmark manager');
+      return;
+    }
+  }
+  
+  if (bookmarks.deleteFolder) {
+    console.log('Falling back to normal bookmark system');
+    bookmarks.deleteFolder(folderId);
+  } else {
+    console.error('No deletion method available for folder:', folderId);
   }
 }
 
@@ -482,11 +516,21 @@ function handleShowAbout() {
 }
 
 function handleShowEditBookmark() {
-  modals.openModal({
-    modal: "edit-bookmark",
-    editingBookmarkId: contextMenu.focusAfterClosed?.dataset.id || null,
-    focusAfterClosed: contextMenu.focusAfterClosed || null,
-  });
+  const bookmarkId = contextMenu.focusAfterClosed?.dataset.id;
+  if (!bookmarkId) return;
+
+  const panelManager = (window as any).panelBookmarkManager;
+  
+  if (panelManager && panelManager.isPanelBookmark(bookmarkId)) {
+    panelManager.editPanelBookmark(bookmarkId);
+  } else {
+    modals.openModal({
+      modal: "edit-bookmark",
+      editingBookmarkId: bookmarkId,
+      focusAfterClosed: contextMenu.focusAfterClosed || null,
+    });
+  }
+  
   contextMenu.closeContextMenu({ focusAfterClosed: false });
 }
 
@@ -500,10 +544,23 @@ function handleShowEditFolder() {
 }
 
 function handleShowNewBookmark() {
-  modals.openModal({
-    modal: "new-bookmark",
-    focusAfterClosed: contextMenu.focusAfterClosed || null,
-  });
+  const clickedElement = contextMenu.focusAfterClosed;
+  const panelContainer = clickedElement?.closest('[data-panel]');
+  const currentPanel = panelContainer?.getAttribute('data-panel') as "top-left" | "top-right" | "bottom-left" | "bottom-right" | "bottom-full";
+  
+  if (currentPanel) {
+    document.dispatchEvent(new CustomEvent('openPanelBookmarkModal', {
+      detail: { panel: currentPanel }
+    }));
+  } else {
+    modals.openModal({
+      modal: "new-bookmark",
+      currentPanel: currentPanel,
+      allowPanelSelection: true,
+      focusAfterClosed: contextMenu.focusAfterClosed || null,
+    });
+  }
+  
   contextMenu.closeContextMenu({ focusAfterClosed: false });
 }
 

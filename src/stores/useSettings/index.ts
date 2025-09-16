@@ -60,7 +60,7 @@ wallpaper =
   typeof wallpaper === "string" && wallpaper.includes("custom-image")
     ? "custom-image"
     : (wallpaper as string) ||
-      (prefersDarkMode() ? "dark-wallpaper" : "light-wallpaper");
+      "dark-wallpaper";
 
 /* Handle changes page between open tabs. */
 const bc = new BroadcastChannel("easy-settings");
@@ -68,6 +68,120 @@ bc.onmessage = (e) => {
   // When settings are updated in another tab, update this tab's settings as well.
   runInAction(() => set(settings, e.data));
 };
+
+// ==================================================================
+// PANEL BOOKMARKS HELPER FUNCTIONS
+// ==================================================================
+
+function getPanelBookmarksData() {
+  try {
+    const panelBookmarkManager = (window as any).panelBookmarkManager;
+    if (panelBookmarkManager && typeof panelBookmarkManager.exportPanelBookmarks === 'function') {
+      const data = panelBookmarkManager.exportPanelBookmarks();
+      console.log('Exporting panel bookmarks data:', data?.length || 0, 'items');
+      
+      // Validate data structure
+      if (Array.isArray(data)) {
+        const validatedData = data.map(item => ({
+          ...item,
+          // Ensure all required fields are present
+          panel: item.panel || 'top-left',
+          index: typeof item.index === 'number' ? item.index : 0,
+          isPanelBookmark: true,
+        }));
+        
+        console.log('Validated panel bookmarks for backup:', validatedData.length, 'items');
+        return validatedData;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to get panel bookmarks data:', error);
+  }
+  
+  // Fallback: try to get from localStorage directly
+  try {
+    const raw = localStorage.getItem('panel-bookmarks');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      console.log('Fallback: got panel bookmarks from localStorage:', parsed?.length || 0, 'items');
+      
+      if (Array.isArray(parsed)) {
+        const validatedData = parsed.map(item => ({
+          ...item,
+          panel: item.panel || 'top-left',
+          index: typeof item.index === 'number' ? item.index : 0,
+          isPanelBookmark: true,
+        }));
+        return validatedData;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to get panel bookmarks from localStorage:', error);
+  }
+  
+  return [];
+}
+
+function setPanelBookmarksData(data: any[]) {
+  try {
+    if (!Array.isArray(data)) {
+      console.warn('Invalid panel bookmarks data format');
+      return false;
+    }
+    
+    // Validate and clean data before importing
+    const cleanedData = data.filter(item => {
+      return item && 
+             typeof item === 'object' && 
+             item.id && 
+             item.panel && 
+             typeof item.index === 'number';
+    }).map(item => ({
+      ...item,
+      isPanelBookmark: true,
+      // Ensure proper data types
+      index: parseInt(item.index) || 0,
+      panel: String(item.panel),
+    }));
+    
+    console.log('Cleaned panel bookmarks data:', cleanedData.length, 'items from', data.length, 'original items');
+    
+    const panelBookmarkManager = (window as any).panelBookmarkManager;
+    if (panelBookmarkManager && typeof panelBookmarkManager.importPanelBookmarks === 'function') {
+      panelBookmarkManager.importPanelBookmarks(cleanedData);
+      console.log('Imported panel bookmarks data via manager:', cleanedData.length, 'items');
+      return true;
+    }
+  } catch (error) {
+    console.warn('Failed to set panel bookmarks data:', error);
+  }
+  
+  // Fallback: try to save to localStorage directly
+  try {
+    const cleanedData = Array.isArray(data) ? data.filter(item => item && item.id) : [];
+    localStorage.setItem('panel-bookmarks', JSON.stringify(cleanedData));
+    console.log('Fallback: saved panel bookmarks to localStorage:', cleanedData.length, 'items');
+    return true;
+  } catch (error) {
+    console.warn('Failed to save panel bookmarks to localStorage:', error);
+  }
+  
+  return false;
+}
+
+// Helper function to get bookmarks bar ID
+async function getBookmarksBarId() {
+  try {
+    const bookmarkTree = await browser.bookmarks.getTree();
+    const bookmarksBar = bookmarkTree[0].children?.find(
+      (node) => node.id === "1" || node.title === "Bookmarks Bar" || node.title === "Yer Ä°mleri Ã‡ubuÄŸu"
+    );
+    return bookmarksBar?.id || "1";
+  } catch (error) {
+    console.warn("Could not get bookmarks bar ID:", error);
+    return "1"; // Default fallback
+  }
+}
 
 // ==================================================================
 // SETTINGS STORE
@@ -86,9 +200,10 @@ const defaultSettings = {
   defaultFolder: "",
   dialColors: {} as DialColors,
   dialImages: {} as DialImages,
-  dialSize: "small",
+  dialSize: "tiny",
   firstRun: !lastVersion,
-  maxColumns: "7",
+  gridLayout: "full-screen",
+  maxColumns: "Unlimited",
   newTab: false,
   showAlertBanner: !lastVersion || isUpgrade,
   showTitle: true,
@@ -96,7 +211,7 @@ const defaultSettings = {
   switchTitle: false,
   themeOption: "System Theme",
   transparentDials: false,
-  wallpaper: "",
+  wallpaper: "dark-wallpaper", // Default dark wallpaper
 };
 
 export const settings = makeAutoObservable({
@@ -116,6 +231,7 @@ export const settings = makeAutoObservable({
     defaultSettings.dialImages,
   dialSize: storage[`${apiVersion}-dial-size`] || defaultSettings.dialSize,
   firstRun: defaultSettings.firstRun,
+  gridLayout: storage[`${apiVersion}-grid-layout`] || defaultSettings.gridLayout,
   maxColumns:
     storage[`${apiVersion}-max-columns`] || defaultSettings.maxColumns,
   newTab: storage[`${apiVersion}-new-tab`] ?? defaultSettings.newTab,
@@ -202,6 +318,11 @@ export const settings = makeAutoObservable({
     browser.storage.local.set({ [`${apiVersion}-dial-size`]: value });
     settings.dialSize = value;
     bc.postMessage({ dialSize: value });
+  },
+  handleGridLayout(value: string) {
+    browser.storage.local.set({ [`${apiVersion}-grid-layout`]: value });
+    settings.gridLayout = value;
+    bc.postMessage({ gridLayout: value });
   },
   handleMaxColumns(value: string) {
     browser.storage.local.set({ [`${apiVersion}-max-columns`]: value });
@@ -317,9 +438,9 @@ export const settings = makeAutoObservable({
     settings._clearCustomImage();
     settings.resetDialColors();
     settings.resetDialImages();
-    settings.resetWallpaper();
     settings.handleDefaultFolder(defaultSettings.defaultFolder);
     settings.handleDialSize(defaultSettings.dialSize);
+    settings.handleGridLayout(defaultSettings.gridLayout);
     settings.handleMaxColumns(defaultSettings.maxColumns);
     settings.handleNewTab(defaultSettings.newTab);
     settings.handleShowTitle(defaultSettings.showTitle);
@@ -327,11 +448,10 @@ export const settings = makeAutoObservable({
     settings.handleSwitchTitle(defaultSettings.switchTitle);
     settings.handleThemeOption(defaultSettings.themeOption);
     settings.handleTransparentDials(defaultSettings.transparentDials);
+    settings.resetWallpaper();
   },
   resetWallpaper() {
-    settings.handleWallpaper(
-      prefersDarkMode() ? "dark-wallpaper" : "light-wallpaper",
-    );
+    settings.handleWallpaper("dark-wallpaper");
   },
   restoreFromJSON() {
     const i = document.createElement("input");
@@ -346,21 +466,20 @@ export const settings = makeAutoObservable({
           const result = e.target?.result;
           if (typeof result !== "string") return;
           const backup = JSON.parse(result);
-          settings.resetSettings();
-          if (backup.customImage) {
-            const image = base64ToBlob(backup.customImage);
-            await browser.storage.local.set({
-              [`${apiVersion}-custom-image`]: backup.customImage,
-            });
-            const imageURI = URL.createObjectURL(image);
-            settings.customImage = imageURI;
-            bc.postMessage({ customImage: imageURI });
+          
+          console.log('Restoring backup version:', backup.backupVersion || '1.0');
+          console.log('Backup layout stats:', backup.layoutStats);
+          
+          if (!browser.bookmarks) {
+            alert('Bookmark permissions required for browser integration. Proceeding with local restore only.');
           }
+          
+          // Reset settings first
+          settings.resetSettings();
+          
+          // Restore basic settings
           if (Object.prototype.hasOwnProperty.call(backup, "attachTitle")) {
             settings.handleAttachTitle(backup.attachTitle);
-          }
-          if (Object.prototype.hasOwnProperty.call(backup, "customColor")) {
-            settings._restoreCustomColor(backup.customColor);
           }
           if (Object.prototype.hasOwnProperty.call(backup, "defaultFolder")) {
             settings.handleDefaultFolder(backup.defaultFolder);
@@ -382,6 +501,12 @@ export const settings = makeAutoObservable({
           if (Object.prototype.hasOwnProperty.call(backup, "dialSize")) {
             settings.handleDialSize(backup.dialSize);
           }
+          
+          if (Object.prototype.hasOwnProperty.call(backup, "gridLayout")) {
+            settings.handleGridLayout(backup.gridLayout);
+            console.log('Restored grid layout:', backup.gridLayout);
+          }
+          
           if (Object.prototype.hasOwnProperty.call(backup, "maxColumns")) {
             settings.handleMaxColumns(backup.maxColumns);
           }
@@ -397,33 +522,227 @@ export const settings = makeAutoObservable({
           if (Object.prototype.hasOwnProperty.call(backup, "switchTitle")) {
             settings.handleSwitchTitle(backup.switchTitle);
           }
-          if (Object.prototype.hasOwnProperty.call(backup, "wallpaper")) {
-            settings._restoreWallpaper(backup.wallpaper);
+          if (Object.prototype.hasOwnProperty.call(backup, "transparentDials")) {
+            settings.handleTransparentDials(backup.transparentDials);
           }
+          
+          // Custom image restore
+          if (backup.customImage && backup.customImage !== "") {
+            await browser.storage.local.set({
+              [`${apiVersion}-custom-image`]: backup.customImage,
+            });
+            const blobImage = base64ToBlob(backup.customImage);
+            const imageURI = URL.createObjectURL(blobImage);
+            settings.customImage = imageURI;
+            bc.postMessage({ customImage: imageURI });
+          }
+          
+          if (Object.prototype.hasOwnProperty.call(backup, "customColor")) {
+            settings._restoreCustomColor(backup.customColor);
+          }
+          
           if (Object.prototype.hasOwnProperty.call(backup, "themeOption")) {
             settings.handleThemeOption(backup.themeOption);
           }
-          if (
-            Object.prototype.hasOwnProperty.call(backup, "transparentDials")
-          ) {
-            settings.handleTransparentDials(backup.transparentDials);
+          
+          if (Object.prototype.hasOwnProperty.call(backup, "wallpaper")) {
+            settings._restoreWallpaper(backup.wallpaper);
           }
+          
+          if (Object.prototype.hasOwnProperty.call(backup, "panelBookmarks") && Array.isArray(backup.panelBookmarks)) {
+            console.log('Restoring panel bookmarks directly to Bookmarks Bar:', backup.panelBookmarks.length, 'items');
+            
+            try {
+              if (browser.bookmarks) {
+                const bookmarksBarId = await getBookmarksBarId();
+                
+                const createdBookmarks = [];
+                let successCount = 0;
+                
+                for (const bookmark of backup.panelBookmarks) {
+                  try {
+                    if (bookmark.type === 'bookmark' && bookmark.url) {
+                      const existingBookmarks = await browser.bookmarks.search({ url: bookmark.url });
+                      const isDuplicate = existingBookmarks.some(bm => 
+                        bm.title === (bookmark.title || bookmark.name) && 
+                        bm.parentId === bookmarksBarId
+                      );
+                      
+                      if (!isDuplicate) {
+                        const created = await browser.bookmarks.create({
+                          parentId: bookmarksBarId,
+                          title: bookmark.title || bookmark.name || 'Untitled',
+                          url: bookmark.url
+                        });
+                        
+                        createdBookmarks.push({
+                          ...bookmark,
+                          id: created.id
+                        });
+                        successCount++;
+                      } else {
+                        console.log('Skipped duplicate bookmark:', bookmark.title);
+                        const existingBookmark = existingBookmarks.find(bm => 
+                          bm.title === (bookmark.title || bookmark.name) &&
+                          bm.parentId === bookmarksBarId
+                        );
+                        if (existingBookmark) {
+                          createdBookmarks.push({
+                            ...bookmark,
+                            id: existingBookmark.id
+                          });
+                        }
+                      }
+                    } else if (bookmark.type === 'folder') {
+                      const created = await browser.bookmarks.create({
+                        parentId: bookmarksBarId,
+                        title: bookmark.title || bookmark.name || 'Untitled Folder'
+                      });
+                      
+                      createdBookmarks.push({
+                        ...bookmark,
+                        id: created.id
+                      });
+                      successCount++;
+                    }
+                  } catch (error) {
+                    console.warn('Failed to create bookmark:', bookmark.title || bookmark.name, error);
+                    createdBookmarks.push(bookmark);
+                  }
+                }
+                
+                console.log(`Successfully created ${successCount} bookmarks directly in Bookmarks Bar`);
+                
+                localStorage.removeItem('panel-bookmarks');
+                
+                const attemptRestore = (attempt: number) => {
+                  setTimeout(() => {
+                    const success = setPanelBookmarksData(createdBookmarks);
+                    if (success) {
+                      console.log('Panel bookmarks layout restored successfully on attempt', attempt);
+                      
+                      setTimeout(() => {
+                        try {
+                          const restored = localStorage.getItem('panel-bookmarks');
+                          if (restored) {
+                            const parsedRestored = JSON.parse(restored);
+                            console.log('Verification: restored', parsedRestored.length, 'bookmarks');
+                            
+                            const message = successCount > 0 
+                              ? `Settings and ${successCount} bookmarks restored directly to Bookmarks Bar! Page will reload to apply all changes.`
+                              : 'Settings restored successfully! Page will reload to apply changes.';
+                            
+                            alert(message);
+                            window.location.reload();
+                          }
+                        } catch (e) {
+                          console.warn('Could not verify restoration:', e);
+                          alert("Settings restored but verification failed. Please refresh the page.");
+                          window.location.reload();
+                        }
+                      }, 500);
+                      
+                    } else if (attempt < 3) {
+                      console.warn('Failed to restore panel bookmarks layout, retrying...');
+                      attemptRestore(attempt + 1);
+                    } else {
+                      console.error('Failed to restore panel bookmarks layout after 3 attempts');
+                      const message = successCount > 0
+                        ? `${successCount} bookmarks created directly in Bookmarks Bar, but panel layout may not be fully restored. Please refresh the page.`
+                        : 'Settings restored but panel layout may not be fully restored. Please refresh the page.';
+                      alert(message);
+                      window.location.reload();
+                    }
+                  }, attempt * 1000);
+                };
+                
+                attemptRestore(1);
+              } else {
+                console.warn('Browser bookmarks API not available, proceeding with local restore only');
+                
+                const attemptRestore = (attempt: number) => {
+                  setTimeout(() => {
+                    const success = setPanelBookmarksData(backup.panelBookmarks);
+                    if (success) {
+                      alert("Settings and bookmark layout restored successfully (local only). Page will reload to apply changes.");
+                      window.location.reload();
+                    } else if (attempt < 3) {
+                      attemptRestore(attempt + 1);
+                    } else {
+                      alert("Settings restored but bookmark layout restoration failed. Please refresh the page.");
+                      window.location.reload();
+                    }
+                  }, attempt * 1000);
+                };
+                
+                attemptRestore(1);
+              }
+              
+            } catch (error) {
+              console.error('Error during bookmark restoration:', error);
+              
+              setTimeout(() => {
+                try {
+                  const success = setPanelBookmarksData(backup.panelBookmarks);
+                  const message = success
+                    ? "Settings restored with fallback bookmark data. Some bookmarks may not be available in browser bookmarks."
+                    : "Settings restored but bookmark restoration failed. Error: " + error.message;
+                  alert(message);
+                } catch (fallbackError) {
+                  alert("Settings restored but bookmark restoration failed completely. Please manually import your bookmarks.");
+                }
+                window.location.reload();
+              }, 1000);
+            }
+            
+          } else {
+            setTimeout(() => {
+              alert("Settings restored successfully. Page will reload to apply changes.");
+              window.location.reload();
+            }, 1000);
+          }
+          
         } catch (err) {
           console.error("Error parsing JSON file", err);
+          alert("Could not read backup file. Please select a valid backup file.");
         }
       };
     };
     i.click();
   },
+
   async saveToJSON() {
+    const { [`${apiVersion}-custom-image`]: customImageBase64 } =
+      await browser.storage.local.get(`${apiVersion}-custom-image`);
+    
+    // Get panel bookmarks data with additional metadata
+    const panelBookmarks = getPanelBookmarksData();
+    
+    // Get current grid dimensions for full-screen layout
+    const gridDimensions = { cols: 10, rows: 6 }; // Default values
+    try {
+      const gridElement = document.querySelector('[data-panel="full-screen-panel"]');
+      if (gridElement) {
+        const computedStyle = getComputedStyle(gridElement);
+        const gridCols = computedStyle.gridTemplateColumns?.split(' ').length || 10;
+        const gridRows = computedStyle.gridTemplateRows?.split(' ').length || 6;
+        gridDimensions.cols = gridCols;
+        gridDimensions.rows = gridRows;
+      }
+    } catch (e) {
+      console.log('Could not get grid dimensions, using defaults');
+    }
+    
     const backup = {
+      // Basic settings
       attachTitle: settings.attachTitle,
       customColor: settings.customColor,
-      customImage: settings.customImage,
+      customImage: customImageBase64 || "",
       defaultFolder: settings.defaultFolder,
       dialColors: settings.dialColors,
       dialImages: settings.dialImages,
       dialSize: settings.dialSize,
+      gridLayout: settings.gridLayout,
       maxColumns: settings.maxColumns,
       newTab: settings.newTab,
       showTitle: settings.showTitle,
@@ -432,12 +751,30 @@ export const settings = makeAutoObservable({
       themeOption: settings.themeOption,
       transparentDials: settings.transparentDials,
       wallpaper: settings.wallpaper,
+      
+      // Panel layout data
+      panelBookmarks: panelBookmarks,
+      gridDimensions: gridDimensions,
+      
+      // Metadata
+      backupVersion: "2.2", // Version artÄ±rÄ±ldÄ± - direct bookmarks bar support
+      timestamp: new Date().toISOString(),
+      gridLayoutAtBackup: settings.gridLayout,
+      totalBookmarks: panelBookmarks.length,
+      
+      // Layout statistics for verification
+      layoutStats: {
+        'top-left': panelBookmarks.filter(b => b.panel === 'top-left').length,
+        'top-right': panelBookmarks.filter(b => b.panel === 'top-right').length,
+        'bottom-left': panelBookmarks.filter(b => b.panel === 'bottom-left').length,
+        'bottom-right': panelBookmarks.filter(b => b.panel === 'bottom-right').length,
+        'bottom-full': panelBookmarks.filter(b => b.panel === 'bottom-full').length,
+        'full-screen-panel': panelBookmarks.filter(b => b.panel === 'full-screen-panel').length,
+      }
     };
-    const { [`${apiVersion}-custom-image`]: image } =
-      await browser.storage.local.get(`${apiVersion}-custom-image`);
-    if (image && typeof image === "string") {
-      backup.customImage = image;
-    }
+    
+    console.log('Creating backup with direct Bookmarks Bar support');
+    console.log('Total bookmarks in backup:', backup.totalBookmarks);
     downloadBackup(backup);
   },
   toggleThemeBackground(scheme: string) {
@@ -515,6 +852,7 @@ autorun(() => {
     settings.maxColumns === "Unlimited" ? "unlimited-columns" : undefined,
     settings.squareDials ? "square" : undefined,
     settings.transparentDials ? "transparent-dials" : undefined,
+    settings.gridLayout,
   );
   document.documentElement.style.backgroundImage =
     settings.wallpaper === "custom-image" && settings.customImage
@@ -565,11 +903,12 @@ function blobToBase64(blob: Blob): Promise<string> {
 
 // Utility to trigger a download of a JSON backup file.
 function downloadBackup(obj: Record<string, unknown>) {
+  const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
   const dataStr = `data:text/plain;charset=utf-8,${encodeURIComponent(
-    JSON.stringify(obj),
+    JSON.stringify(obj, null, 2), // Pretty print with 2 space indentation
   )}`;
   const a = document.createElement("a");
   a.href = dataStr;
-  a.download = "easy-backup.json";
+  a.download = `easy-backup-${timestamp}.json`;
   a.click();
 }

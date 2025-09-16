@@ -17,6 +17,20 @@ export function WhatsNewModal() {
       <div className="scroll-focus" tabIndex={0}>
         <div className="WhatsNew">
           <div>
+            <h2>Version 3.0.0</h2>
+            <h3>New features</h3>
+            <ul>
+              <li>Customizable multi-grid (panel) system</li>
+              <li>New dial-size options</li>
+              <li>Bookmark adding via + button</li>
+              <li>Many other major updates</li>
+            </ul>
+            <h3>Resolved Issues</h3>
+            <ul>
+              <li>Minor bug fixes</li>
+            </ul>
+          </div>
+          <div>
             <h2>Version 2.13.0</h2>
             <h3>New features</h3>
             <ul>

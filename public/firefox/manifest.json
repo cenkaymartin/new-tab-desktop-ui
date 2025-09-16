@@ -1,9 +1,15 @@
 {
   "manifest_version": 2,
-  "name": "Easy Speed Dial",
-  "version": "2.13.0",
-  "permissions": ["bookmarks", "storage", "unlimitedStorage"],
-  "description": "Easy Speed Dial replaces the new tab page with a colorful grid of your bookmarks and folders.",
+  "name": "Easy Speed Dial v3",
+  "version": "3.0.0",
+  "permissions": [
+    "favicon",
+    "storage",
+    "unlimitedStorage",
+    "bookmarks",
+    "history"
+  ],
+  "description": "Easy Speed Dial v3 replaces the new tab page with a grid of your bookmarks and folders.",
   "chrome_settings_overrides": {
     "homepage": "index.html"
   },
@@ -15,16 +21,33 @@
     "open_in_tab": true
   },
   "icons": {
-    "16": "icons/16.svg",
-    "32": "icons/32.svg",
-    "48": "icons/48.svg",
-    "64": "icons/64.svg",
-    "96": "icons/96.svg",
-    "128": "icons/128.svg",
-    "256": "icons/256.svg",
-    "512": "icons/512.svg",
-    "1024": "icons/1024.svg"
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "64": "icons/64.png",
+    "96": "icons/96.png",
+    "128": "icons/128.png",
+    "256": "icons/256.png",
+    "512": "icons/512.png",
+    "1024": "icons/1024.png"
   },
-  "author": "Lucas Everett",
-  "homepage_url": "https://easyspeeddial.com"
+  "author": "Cenkay Martin (GitHub: @cenkaymartin)",
+  "homepage_url": "https://github.com/cenkaymartin/easy-speed-dial-v3",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "_favicon/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ],
+      "extension_ids": [
+        "*"
+      ]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Easy Speed Dial v3"
+  }
 }

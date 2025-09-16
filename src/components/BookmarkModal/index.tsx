@@ -18,13 +18,42 @@ import { getLinkName } from "#utils/filter";
 
 import "./styles.css";
 
-export const BookmarkModal = observer(function BookmarkModal() {
+interface BookmarkModalProps {
+  onClose?: () => void;
+  onSave?: (data: { title: string; url: string; panel?: string }) => void;
+  targetPanel?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | "bottom-full" | "full-screen-panel" | null;
+}
+
+export const BookmarkModal = observer(function BookmarkModal({ 
+  onClose, 
+  onSave, 
+  targetPanel 
+}: BookmarkModalProps) {
   const [editingBookmark, setEditingBookmark] =
     useState<Bookmarks.BookmarkTreeNode | null>(null);
+  const [editingPanelBookmark, setEditingPanelBookmark] = useState<any>(null);
   const [bookmarkTitle, setBookmarkTitle] = useState("");
   const [bookmarkURL, setBookmarkURL] = useState("");
   const [parentFolderId, setparentFolderId] = useState(
     (bookmarks.currentFolder as { id: string }).id || "",
+  );
+
+  // Get default panel based on current grid layout
+  const getDefaultPanel = () => {
+    const gridLayout = settings.gridLayout || "4-panel";
+    switch (gridLayout) {
+      case "full-screen":
+        return "full-screen-panel";
+      case "2-panel":
+      case "3-panel":
+      case "4-panel":
+      default:
+        return "top-left";
+    }
+  };
+
+  const [selectedPanel, setSelectedPanel] = useState<"top-left" | "top-right" | "bottom-left" | "bottom-right" | "bottom-full" | "full-screen-panel">(
+    targetPanel || modals.currentPanel || getDefaultPanel()
   );
   const [customDialColor, setCustomDialColor] = useState("");
   const isEditing = modals.editingBookmarkId !== null;
@@ -32,28 +61,159 @@ export const BookmarkModal = observer(function BookmarkModal() {
     ? "folder"
     : "bookmark";
 
-  // Load bookmark details when editing an existing bookmark or folder.
+  const usesPanelSystem = onSave && targetPanel;
+  const isPanelBookmarkEdit = isEditing && editingPanelBookmark;
+
+  // Panel display names - layout aware
+  const getPanelDisplayName = (panel: string) => {
+    const gridLayout = settings.gridLayout || "4-panel";
+    
+    switch (panel) {
+      case "top-left":
+        return gridLayout === "2-panel" ? "Left Panel" : "Top Left Panel";
+      case "top-right":
+        return gridLayout === "2-panel" ? "Right Panel" : "Top Right Panel";
+      case "bottom-left":
+        return "Bottom Left Panel";
+      case "bottom-right":
+        return "Bottom Right Panel";
+      case "bottom-full":
+        return gridLayout === "3-panel" ? "Bottom Panel" : "Bottom Full Panel";
+      case "full-screen-panel":
+        return "Full Screen Panel";
+      default:
+        return "Unknown Panel";
+    }
+  };
+
+  // Get available panels based on grid layout
+  const getAvailablePanels = () => {
+    const gridLayout = settings.gridLayout || "4-panel";
+    
+    switch (gridLayout) {
+      case "2-panel":
+        return [
+          { value: "top-left", label: "Left Panel" },
+          { value: "top-right", label: "Right Panel" }
+        ];
+      case "3-panel":
+        return [
+          { value: "top-left", label: "Top Left Panel" },
+          { value: "top-right", label: "Top Right Panel" },
+          { value: "bottom-full", label: "Bottom Panel" }
+        ];
+      case "full-screen":
+        return [
+          { value: "full-screen-panel", label: "Full Screen Panel" }
+        ];
+      case "4-panel":
+      default:
+        return [
+          { value: "top-left", label: "Top Left Panel" },
+          { value: "top-right", label: "Top Right Panel" },
+          { value: "bottom-left", label: "Bottom Left Panel" },
+          { value: "bottom-right", label: "Bottom Right Panel" }
+        ];
+    }
+  };
+
+  // Handle modal close function
+  const handleModalClose = () => {
+    if (usesPanelSystem || isPanelBookmarkEdit) {
+      modals.editingBookmarkId = null;
+      modals.isOpen = null;
+      onClose?.();
+    } else {
+      modals.closeModal();
+      onClose?.();
+    }
+  };
+
+  // Keyboard event handler for ESC and Space
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // ESC key always closes the modal
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        handleModalClose();
+        return;
+      }
+      
+      // Space key closes modal only when not focused on input elements
+      if (e.key === " " || e.code === "Space") {
+        const activeElement = document.activeElement;
+        const isInputFocused = activeElement && (
+          activeElement.tagName === "INPUT" ||
+          activeElement.tagName === "TEXTAREA" ||
+          activeElement.tagName === "SELECT" ||
+          activeElement.contentEditable === "true"
+        );
+        
+        // Only close on space if not typing in an input
+        if (!isInputFocused) {
+          e.preventDefault();
+          e.stopPropagation();
+          handleModalClose();
+        }
+      }
+    };
+
+    // Add event listener to document
+    document.addEventListener("keydown", handleKeyDown, true);
+    
+    // Cleanup
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [usesPanelSystem, isPanelBookmarkEdit, onClose]);
+
   useEffect(() => {
     async function loadBookmarkData() {
       if (modals.editingBookmarkId) {
-        const bookmark = await bookmarks.getBookmarkById(
-          modals.editingBookmarkId,
-        );
-        if (bookmark) {
-          setEditingBookmark(bookmark);
-          setBookmarkTitle(bookmark.title || "");
-          setBookmarkURL(bookmark.url || "");
-          setparentFolderId(bookmark.parentId || "");
-          // Load the custom dial color for this bookmark, if set.
-          const customColor = settings.dialColors[modals.editingBookmarkId];
-          setCustomDialColor(customColor || "");
+        const panelManager = (window as any).panelBookmarkManager;
+        
+        if (panelManager && panelManager.isPanelBookmark(modals.editingBookmarkId)) {
+          const panelBookmark = panelManager.getPanelBookmark(modals.editingBookmarkId);
+          if (panelBookmark) {
+            setEditingPanelBookmark(panelBookmark);
+            setBookmarkTitle(panelBookmark.title || panelBookmark.name || "");
+            setBookmarkURL(panelBookmark.url || "");
+            setSelectedPanel(panelBookmark.panel || getDefaultPanel());
+            const customColor = settings.dialColors[modals.editingBookmarkId];
+            setCustomDialColor(customColor || "");
+          }
+        } else {
+          const bookmark = await bookmarks.getBookmarkById(
+            modals.editingBookmarkId,
+          );
+          if (bookmark) {
+            setEditingBookmark(bookmark);
+            setBookmarkTitle(bookmark.title || "");
+            setBookmarkURL(bookmark.url || "");
+            setparentFolderId(bookmark.parentId || "");
+            const customColor = settings.dialColors[modals.editingBookmarkId];
+            setCustomDialColor(customColor || "");
+          }
         }
       }
     }
 
     loadBookmarkData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modals.editingBookmarkId]);
+
+  // Update selected panel when grid layout changes
+  useEffect(() => {
+    if (!isEditing) {
+      const currentDefault = getDefaultPanel();
+      const availablePanels = getAvailablePanels();
+      const isCurrentPanelAvailable = availablePanels.some(p => p.value === selectedPanel);
+      
+      if (!isCurrentPanelAvailable) {
+        setSelectedPanel(currentDefault as any);
+      }
+    }
+  }, [settings.gridLayout, isEditing, selectedPanel]);
 
   const defaultDialColor = dialColors(
     getLinkName(bookmarkType === "folder" ? bookmarkTitle : bookmarkURL),
@@ -65,18 +225,48 @@ export const BookmarkModal = observer(function BookmarkModal() {
       ? defaultDialColor
       : "";
   const disabled = bookmarkType === "folder" ? false : !bookmarkURL;
+  
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    
+    if (usesPanelSystem && onSave) {
+      onSave({
+        title: bookmarkTitle,
+        url: bookmarkURL,
+        panel: selectedPanel
+      });
+      return;
+    }
+
     if (isEditing) {
-      // Save a custom dial color if it differs from the default.
-      // Remove the custom dial color if it matches the default.
       const color = dialColor !== defaultDialColor ? customDialColor : "";
       if (color && modals.editingBookmarkId) {
         settings.handleDialColors(modals.editingBookmarkId, color);
       } else if (modals.editingBookmarkId) {
         settings.handleClearColor(modals.editingBookmarkId);
       }
-      // Determine which bookmark details have changed.
+      
+      if (isPanelBookmarkEdit) {
+        const panelManager = (window as any).panelBookmarkManager;
+        if (panelManager && modals.editingBookmarkId) {
+          await bookmarks.updateBookmark(modals.editingBookmarkId, {
+            title: bookmarkTitle,
+            url: bookmarkURL,
+          });
+          
+          await panelManager.updatePanelBookmark(modals.editingBookmarkId, {
+            title: bookmarkTitle,
+            url: bookmarkURL,
+            panel: selectedPanel
+          });
+        }
+        
+        modals.editingBookmarkId = null;
+        modals.isOpen = null;
+        onClose?.();
+        return;
+      }
+      
       const detailsChanged =
         ((bookmarkType === "folder" || bookmarkType === "bookmark") &&
           bookmarkTitle !== editingBookmark?.title) ||
@@ -88,7 +278,6 @@ export const BookmarkModal = observer(function BookmarkModal() {
         | { focusAfterClosed?: FocusAfterClosed }
         | undefined;
 
-      // Update bookmark details if they changed.
       if (detailsChanged && modals.editingBookmarkId) {
         updatedBookmark = await bookmarks.updateBookmark(
           modals.editingBookmarkId,
@@ -97,14 +286,12 @@ export const BookmarkModal = observer(function BookmarkModal() {
             ...(bookmarkType === "bookmark" ? { url: bookmarkURL } : {}),
           },
         );
-        // Focus on the updated bookmark after closing.
         closeModalOptions = {
           focusAfterClosed: () =>
             document.querySelector(`[data-id="${updatedBookmark!.id}"]`),
         };
       }
 
-      // Move bookmark to different folder if parent changed.
       if (parentChanged) {
         bookmarks.moveBookmark({
           id: modals.editingBookmarkId!,
@@ -112,29 +299,70 @@ export const BookmarkModal = observer(function BookmarkModal() {
           to: undefined,
           parentId: parentFolderId,
         });
-        // Don't focus since the bookmark is no longer visible in current folder.
         closeModalOptions = undefined;
       }
 
-      // Close modal with appropriate focus behavior:
-      // - If details changed: focus on updated bookmark
-      // - If parent changed: no focus (item moved away)
-      // - If no changes: undefined lets modal handle focus automatically
       modals.closeModal(closeModalOptions);
+      onClose?.();
+    
     } else {
+      const panelManager = (window as any).panelBookmarkManager;
+
+      if (panelManager && panelManager.addBookmarkToPanel && bookmarkType === "bookmark") {
+        const targetPanelForNew = selectedPanel || getDefaultPanel();
+        const created = await panelManager.addBookmarkToPanel({
+          title: bookmarkTitle,
+          url: bookmarkURL,
+          panel: targetPanelForNew
+        });
+
+        if (dialColor !== defaultDialColor && created?.id) {
+          settings.handleDialColors(created.id, customDialColor);
+        }
+
+        modals.closeModal({
+          focusAfterClosed: () =>
+            created?.id ? document.querySelector(`[data-id="${created.id}"]`) : undefined,
+        });
+        onClose?.();
+        return;
+      }
+
       const newBookmark = await bookmarks.createBookmark({
         url: bookmarkType === "bookmark" ? bookmarkURL : undefined,
         title: bookmarkTitle,
         parentId: parentFolderId,
       });
+
       if (dialColor !== defaultDialColor) {
-        // Save a custom dial color if it differs from the default.
         settings.handleDialColors(newBookmark.id, customDialColor);
       }
+
+      if (panelManager) {
+        const targetPanelForNew = selectedPanel || getDefaultPanel();
+        const nextIndex = panelManager.getNextIndexForPanel
+          ? panelManager.getNextIndexForPanel(targetPanelForNew)
+          : 9999;
+
+        const panelBookmarkEntry = {
+          name: bookmarkTitle,
+          title: bookmarkTitle,
+          type: bookmarkType,
+          index: nextIndex,
+          url: bookmarkType === "bookmark" ? bookmarkURL : undefined,
+          panel: targetPanelForNew,
+          id: newBookmark.id,
+          isPanelBookmark: true,
+        };
+
+        panelManager.addPanelBookmark(panelBookmarkEntry);
+      }
+
       modals.closeModal({
         focusAfterClosed: () =>
           document.querySelector(`[data-id="${newBookmark.id}"]`),
       });
+      onClose?.();
     }
   }
 
@@ -144,15 +372,42 @@ export const BookmarkModal = observer(function BookmarkModal() {
     (document.querySelector("#dial-color-input") as HTMLInputElement)?.focus();
   }
 
+  useEffect(() => {
+    if (!onClose) return;
+    const handler = (e: Event) => {
+      const t = e.target as HTMLElement | null;
+      if (!t) return;
+      const closeEl = t.closest('button[aria-label="Close"], .close-button, .modal-close, .Modal__close');
+      if (closeEl) {
+        setTimeout(() => onClose?.(), 0);
+      }
+    };
+    document.addEventListener('click', handler, true);
+    return () => document.removeEventListener('click', handler, true);
+  }, [onClose]);
+
+  const handleCancel = () => {
+    handleModalClose();
+  };
+
+  let modalTitle = `${isEditing ? "Edit" : "New"} ${
+    bookmarkType === "bookmark" ? "Bookmark" : "Folder"
+  }`;
+
+  if (isPanelBookmarkEdit) {
+    modalTitle += ` (${getPanelDisplayName(editingPanelBookmark?.panel || getDefaultPanel())})`;
+  } else if (targetPanel) {
+    modalTitle += ` (${getPanelDisplayName(targetPanel)})`;
+  }
+
+  const availablePanels = getAvailablePanels();
+
   return (
     <Modal
-      {...{
-        title: `${isEditing ? "Edit" : "New"} ${
-          bookmarkType === "bookmark" ? "Bookmark" : "Folder"
-        }`,
-        initialFocus: "#title-input",
-        width: "400px",
-      }}
+      onClose={onClose} 
+      title={modalTitle}
+      initialFocus="#title-input"
+      width="400px"
     >
       <div className="BookmarkModal">
         <form onSubmit={handleSubmit}>
@@ -180,24 +435,40 @@ export const BookmarkModal = observer(function BookmarkModal() {
                 />
               </>
             )}
-            <label htmlFor="folder-select">Folder:</label>
-            <div className="folder-select">
-              <select
-                id="folder-select"
-                value={parentFolderId}
-                onChange={(e) => setparentFolderId(e.target.value)}
-                className="input"
-              >
-                {bookmarks.folders.map(
-                  (folder: { id: string; title: string }) => (
-                    <option key={folder.id} value={folder.id}>
-                      {folder.title}
-                    </option>
-                  ),
-                )}
-              </select>
-              <CaretDown />
-            </div>
+            
+            {/* Panel Selection - only show dropdown for editing panel bookmarks or when creating new bookmarks */}
+            {usesPanelSystem && !isPanelBookmarkEdit ? (
+              <>
+                <label>Panel:</label>
+                <div className="input" style={{ 
+                  padding: '8px 12px', 
+                  backgroundColor: '#f5f5f5',
+                  color: '#666'
+                }}>
+                  {getPanelDisplayName(targetPanel || getDefaultPanel())}
+                </div>
+              </>
+            ) : (
+              <>
+                <label htmlFor="panel-select">Panel:</label>
+                <div className="folder-select">
+                  <select
+                    id="panel-select"
+                    value={selectedPanel}
+                    onChange={(e) => setSelectedPanel(e.target.value as any)}
+                    className="input"
+                  >
+                    {availablePanels.map(panel => (
+                      <option key={panel.value} value={panel.value}>
+                        {panel.label}
+                      </option>
+                    ))}
+                  </select>
+                  <CaretDown />
+                </div>
+              </>
+            )}
+
             <label htmlFor="dial-color-input">Color:</label>
             <div className="dial-color-input">
               <button
@@ -244,7 +515,7 @@ export const BookmarkModal = observer(function BookmarkModal() {
             <button
               type="button"
               className="btn defaultBtn"
-              onClick={() => modals.closeModal()}
+              onClick={handleCancel}
             >
               Cancel
             </button>

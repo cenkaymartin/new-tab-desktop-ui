@@ -1,23 +1,22 @@
 <div style="text-align:center"><img src ="screenshot.webp" /></div>
 
-# Easy Speed Dial
+# Easy Speed Dial v3
 
-Easy Speed Dial is a browser extension that replaces the new tab page with a colorful grid of your bookmarks and folders.
+Easy Speed Dial v3 is a fork of (https://github.com/lucaseverett/easy-speed-dial).  
+Additional features and modifications by [Cenkay Martin (GitHub: @cenkaymartin)](https://github.com/cenkaymartin).
+
+This browser extension replaces the new tab page with a grid of your bookmarks and folders.
 
 ## Support Development
 
-If you find this extension useful, consider [buying me a coffee](https://www.buymeacoffee.com/lucaseverett) to support continued development!
-
-## Live Demo
-
-https://demo.easyspeeddial.com/
+If you find this extension useful, consider [buying me a coffee](https://buymeacoffee.com/cenkaymartin) to support continued development!
 
 ## Installation
 
 ### Clone the repo
 
 ```sh
-git clone https://github.com/lucaseverett/easy-speed-dial.git
+git clone https://github.com/cenkaymartin/easy-speed-dial-v3.git
 ```
 
 ### Install packages
@@ -93,3 +92,8 @@ npm run build:chrome
 ```sh
 npm run build:firefox
 ```
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).  
+It is a fork of [lucaseverett/easy-speed-dial](https://github.com/lucaseverett/easy-speed-dial) with additional features and modifications by [Cenkay Martin (GitHub: @cenkaymartin)].
