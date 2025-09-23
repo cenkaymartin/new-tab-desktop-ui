@@ -13,7 +13,7 @@ If you find this extension useful, consider [buying me a coffee](https://buymeac
 
 ## Installation
 
-[How to Install and Use Easy Speed Dial V3](https://www.youtube.com/watch?v=I-3GmfDBz4M)
+[How to Install and Use Easy Speed Dial V3?](https://www.youtube.com/watch?v=I-3GmfDBz4M)
 
 ### Clone the repo
 
