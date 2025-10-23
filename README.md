@@ -7,15 +7,15 @@ Organize bookmarks in a clean **grid layout**, drag and drop icons freely, and c
 
 🚀 Features
 
-**Desktop-like bookmark grid layout**
+**- Desktop-like bookmark grid layout**
 
-**Drag & drop bookmark icons**
+**- Drag & drop bookmark icons**
 
-**Custom backgrounds & themes**
+**- Custom backgrounds & themes**
 
-**Minimal and responsive design**
+**- Minimal and responsive design**
 
-**Perfect for productivity and aesthetics**
+**- Perfect for productivity and aesthetics**
 
 🧠 Ideal for users who want a fast, visual, and organized start page that replaces the default new tab with a fully customizable desktop dashboard.
 
@@ -109,7 +109,7 @@ $env:PROJECT="firefox"; npm run build
 
 ## License & Credits
 
-This project is licensed under the [MIT License](LICENSE) 
-Forked from [lucaseverett/easy-speed-dial](https://github.com/lucaseverett/easy-speed-dial) 
-with additional features and improvements by [Cenkay Martin](https://github.com/cenkaymartin) 
+This project is licensed under the [MIT License](LICENSE)  
+Forked from [lucaseverett/easy-speed-dial](https://github.com/lucaseverett/easy-speed-dial)  
+with additional features and improvements by [Cenkay Martin](https://github.com/cenkaymartin)  
 Thanks to @CyPack for their contribution.
