@@ -9,7 +9,7 @@
     "bookmarks",
     "history"
   ],
-  "description": "New Tab Desktop UI replaces the new tab page with a grid of your bookmarks and folders.",
+  "description": "A customizable new tab extension that turns your bookmarks into a desktop-style grid dashboard with drag & drop layout.",
   "chrome_settings_overrides": {
     "homepage": "index.html"
   },
