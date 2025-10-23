@@ -460,7 +460,7 @@ const FaviconImage = observer(function FaviconImage({ url, title }: FaviconProps
           setFaviconUrl(result);
           setLoading(false);
         } else {
-          throw new Error('Favicon bulunamadÄ±');
+          throw new Error('Favicon bulunamadı');
         }
       } catch (error) {
         setHasError(true);
@@ -631,7 +631,7 @@ export const Dial = observer(function Dial(props: DialProps) {
             ? `url("${backgroundImage}")`
             : undefined,
           backgroundPosition: "center",
-          backgroundSize: "cover",
+          backgroundSize: backgroundImage ? "60%" : "cover",
           backgroundRepeat: "no-repeat",
           textShadow:
             props.type !== "folder" ? "2px 1px 0 rgb(33,33,33,0.7)" : "none",
