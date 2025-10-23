@@ -138,7 +138,7 @@ export function WhatsNewModal() {
             <h2>Version 2.8</h2>
             <h3>New features</h3>
             <ul>
-              <li>Toolbar Dial is now Easy Speed Dial.</li>
+              <li>Toolbar Dial is now New Tab Desktop UI.</li>
               <li>Added Backup/Restore feature to Settings</li>
               <li>Added ability to remove custom background image</li>
               <li>Added Reset feature to Settings</li>

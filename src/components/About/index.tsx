@@ -8,9 +8,9 @@ export function About() {
   return (
     <div className="About">
       <div className="logo">
-        <img src={logo} width="128" height="128" alt="Easy Speed Dial v3" />
+        <img src={logo} width="128" height="128" alt="New Tab Desktop UI" />
         <div className="right">
-          <p className="title">Easy Speed Dial</p>
+          <p className="title">New Tab Desktop UI</p>
           <p className="small">Version {appVersion}</p>
           <p>
             Need help? Email{" "}
@@ -22,7 +22,7 @@ export function About() {
           <p>
             Find a bug? Please report it to the{" "}
             <a
-              href="https://github.com/cenkaymartin/easy-speed-dial-v3"
+              href="https://github.com/cenkaymartin/new-tab-desktop-ui"
               rel="noreferrer"
               target="_blank"
             >
@@ -34,8 +34,8 @@ export function About() {
       </div>
       <div className="details">
         <p className="copyright">
-          <a href="https://github.com/cenkaymartin/easy-speed-dial-v3" rel="noreferrer" target="_blank">
-            Easy Speed Dial v3
+          <a href="https://github.com/cenkaymartin/new-tab-desktop-ui" rel="noreferrer" target="_blank">
+            New Tab Desktop UI
           </a>{" "}
           was created by{" "}
           <a href="https://github.com/cenkaymartin" rel="noreferrer" target="_blank">
@@ -51,7 +51,7 @@ export function About() {
           Copyright &copy; 2018-{new Date().getFullYear()} Lucas Everett.
           Released under the{" "}
           <a
-            href="https://github.com/cenkaymartin/easy-speed-dial-v3/blob/main/LICENSE"
+            href="https://github.com/cenkaymartin/new-tab-desktop-ui/blob/main/LICENSE"
             rel="noreferrer"
             target="_blank"
           >

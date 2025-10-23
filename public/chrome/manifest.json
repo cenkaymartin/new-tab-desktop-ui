@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Easy Speed Dial v3",
+  "name": "New Tab Desktop UI",
   "version": "3.0.0",
   "permissions": [
     "favicon",
@@ -9,7 +9,7 @@
     "bookmarks",
     "history"
   ],
-  "description": "Easy Speed Dial v3 replaces the new tab page with a grid of your bookmarks and folders.",
+  "description": "New Tab Desktop UI replaces the new tab page with a grid of your bookmarks and folders.",
   "chrome_url_overrides": {
     "newtab": "index.html"
   },
@@ -28,8 +28,8 @@
     "512": "icons/512.png",
     "1024": "icons/1024.png"
   },
-  "author": "Cenkay Martin (GitHub: @cenkaymartin)",
-  "homepage_url": "https://github.com/cenkaymartin/easy-speed-dial-v3",
+  "author": "Cenkay Martin",
+  "homepage_url": "https://github.com/cenkaymartin/new-tab-desktop-ui",
   "web_accessible_resources": [
     {
       "resources": [
@@ -45,6 +45,6 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Easy Speed Dial v3"
+    "default_title": "New Tab Desktop UI"
   }
 }

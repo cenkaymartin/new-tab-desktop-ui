@@ -1,11 +1,23 @@
 <div style="text-align:center"><img src ="screenshot.webp" /></div>
 
-# Easy Speed Dial v3
+# New Tab Desktop UI
 
-Easy Speed Dial v3 is a fork of (https://github.com/lucaseverett/easy-speed-dial).  
-Additional features and modifications by [Cenkay Martin (GitHub: @cenkaymartin)](https://github.com/cenkaymartin).
+**New Tab Desktop UI** transforms your browser’s new tab page into a **modern, desktop-style bookmark manager.**
+Organize bookmarks in a clean **grid layout**, drag and drop icons freely, and create a **personal start page** that looks and feels like your computer desktop.
 
-This browser extension replaces the new tab page with a grid of your bookmarks and folders.
+🚀 Features
+
+**Desktop-like bookmark grid layout**
+
+**Drag & drop bookmark icons**
+
+**Custom backgrounds & themes**
+
+**Minimal and responsive design**
+
+**Perfect for productivity and aesthetics**
+
+🧠 Ideal for users who want a fast, visual, and organized start page that replaces the default new tab with a fully customizable desktop dashboard.
 
 ## Support Development
 
@@ -13,12 +25,12 @@ If you find this extension useful, consider [buying me a coffee](https://buymeac
 
 ## Installation
 
-[How to Install and Use Easy Speed Dial V3?](https://www.youtube.com/watch?v=I-3GmfDBz4M)
+[(YT VIDEO) How to Install and Use New Tab Desktop UI?](https://www.youtube.com/watch?v=I-3GmfDBz4M)
 
 ### Clone the repo
 
 ```sh
-git clone https://github.com/cenkaymartin/easy-speed-dial-v3.git
+git clone https://github.com/cenkaymartin/new-tab-desktop-ui.git
 ```
 
 ### Install packages
@@ -95,7 +107,9 @@ $env:PROJECT="chrome"; npm run build
 $env:PROJECT="firefox"; npm run build
 ```
 
-## License
+## License & Credits
 
-This project is licensed under the [MIT License](LICENSE).  
-It is a fork of [lucaseverett/easy-speed-dial](https://github.com/lucaseverett/easy-speed-dial) with additional features and modifications by [Cenkay Martin (GitHub: @cenkaymartin)].
+This project is licensed under the [MIT License](LICENSE) 
+Forked from [lucaseverett/easy-speed-dial](https://github.com/lucaseverett/easy-speed-dial) 
+with additional features and improvements by [Cenkay Martin](https://github.com/cenkaymartin) 
+Thanks to @CyPack for their contribution.

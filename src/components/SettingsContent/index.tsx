@@ -232,7 +232,7 @@ export const SettingsContent = observer(function SettingsContent() {
             Color Scheme
           </div>
           <div className="setting-description" id="color-scheme-description">
-            Choose the color scheme for Easy Speed Dial. If set to
+            Choose the color scheme for New Tab Desktop UI. If set to
             &quot;Automatic,&quot; it will follow your system&apos;s light or
             dark mode preference.
           </div>
