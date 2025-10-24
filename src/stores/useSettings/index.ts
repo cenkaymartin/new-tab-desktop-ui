@@ -4,6 +4,7 @@ import semverCoerce from "semver/functions/coerce";
 import semverGt from "semver/functions/gt";
 import browser from "webextension-polyfill";
 
+import { batchPrefetchFavicons } from "#components/Grid/Dial";
 import { mockBookmarks } from "#stores/useBookmarks/mockBookmarks";
 
 // ==================================================================
@@ -612,9 +613,29 @@ export const settings = makeAutoObservable({
                 }
                 
                 console.log(`Successfully created ${successCount} bookmarks directly in Bookmarks Bar`);
-                
+
+                // Batch prefetch favicons for all restored bookmarks
+                const urlsToPrefetch = backup.panelBookmarks
+                  .filter((bm: any) => bm.type === 'bookmark' && bm.url)
+                  .map((bm: any) => bm.url);
+
+                if (urlsToPrefetch.length > 0) {
+                  console.log(`Starting favicon prefetch for ${urlsToPrefetch.length} bookmarks...`);
+
+                  // Run favicon prefetch in background (non-blocking)
+                  batchPrefetchFavicons(urlsToPrefetch, (current, total, url, status) => {
+                    const percentage = Math.round((current / total) * 100);
+                    console.log(`[Favicon Prefetch] ${percentage}% (${current}/${total}) - ${status}: ${url}`);
+                  }).then((result) => {
+                    console.log('Favicon prefetch completed:', result);
+                    console.log(`✓ Successful: ${result.successful}, ✗ Failed: ${result.failed}, ⊘ Skipped: ${result.skipped}`);
+                  }).catch((error) => {
+                    console.warn('Favicon prefetch encountered an error:', error);
+                  });
+                }
+
                 localStorage.removeItem('panel-bookmarks');
-                
+
                 const attemptRestore = (attempt: number) => {
                   setTimeout(() => {
                     const success = setPanelBookmarksData(createdBookmarks);
@@ -628,10 +649,10 @@ export const settings = makeAutoObservable({
                             const parsedRestored = JSON.parse(restored);
                             console.log('Verification: restored', parsedRestored.length, 'bookmarks');
                             
-                            const message = successCount > 0 
-                              ? `Settings and ${successCount} bookmarks restored directly to Bookmarks Bar! Page will reload to apply all changes.`
+                            const message = successCount > 0
+                              ? `Settings and ${successCount} bookmarks restored directly to Bookmarks Bar!\n\nFavicon loading is running in the background. You can start using your bookmarks immediately.\n\nPage will reload to apply all changes.`
                               : 'Settings restored successfully! Page will reload to apply changes.';
-                            
+
                             alert(message);
                             window.location.reload();
                           }
@@ -659,7 +680,27 @@ export const settings = makeAutoObservable({
                 attemptRestore(1);
               } else {
                 console.warn('Browser bookmarks API not available, proceeding with local restore only');
-                
+
+                // Batch prefetch favicons for all restored bookmarks (even in local-only mode)
+                const urlsToPrefetch = backup.panelBookmarks
+                  .filter((bm: any) => bm.type === 'bookmark' && bm.url)
+                  .map((bm: any) => bm.url);
+
+                if (urlsToPrefetch.length > 0) {
+                  console.log(`Starting favicon prefetch for ${urlsToPrefetch.length} bookmarks...`);
+
+                  // Run favicon prefetch in background (non-blocking)
+                  batchPrefetchFavicons(urlsToPrefetch, (current, total, url, status) => {
+                    const percentage = Math.round((current / total) * 100);
+                    console.log(`[Favicon Prefetch] ${percentage}% (${current}/${total}) - ${status}: ${url}`);
+                  }).then((result) => {
+                    console.log('Favicon prefetch completed:', result);
+                    console.log(`✓ Successful: ${result.successful}, ✗ Failed: ${result.failed}, ⊘ Skipped: ${result.skipped}`);
+                  }).catch((error) => {
+                    console.warn('Favicon prefetch encountered an error:', error);
+                  });
+                }
+
                 const attemptRestore = (attempt: number) => {
                   setTimeout(() => {
                     const success = setPanelBookmarksData(backup.panelBookmarks);

@@ -395,18 +395,18 @@ export function validateFaviconCache() {
     const cache = getFaviconCache();
     const failedCache = getFailedCache();
     const now = Date.now();
-    
+
     let validEntries = 0;
     let expiredEntries = 0;
     let corruptedEntries = 0;
-    
+
     Object.entries(cache).forEach(([hostname, entry]) => {
       try {
         if (!entry || typeof entry !== 'object' || !entry.url || !entry.timestamp) {
           corruptedEntries++;
           return;
         }
-        
+
         if (now - entry.timestamp > CACHE_EXPIRY) {
           expiredEntries++;
         } else {
@@ -416,7 +416,7 @@ export function validateFaviconCache() {
         corruptedEntries++;
       }
     });
-    
+
     return {
       valid: validEntries,
       expired: expiredEntries,
@@ -430,6 +430,108 @@ export function validateFaviconCache() {
   }
 }
 
+interface FaviconPrefetchResult {
+  total: number;
+  successful: number;
+  failed: number;
+  skipped: number;
+  duration: number;
+}
+
+export async function batchPrefetchFavicons(
+  urls: string[],
+  onProgress?: (current: number, total: number, url: string, status: 'success' | 'failed' | 'skipped') => void
+): Promise<FaviconPrefetchResult> {
+  const startTime = Date.now();
+  const result: FaviconPrefetchResult = {
+    total: urls.length,
+    successful: 0,
+    failed: 0,
+    skipped: 0,
+    duration: 0
+  };
+
+  if (urls.length === 0) {
+    result.duration = Date.now() - startTime;
+    return result;
+  }
+
+  console.log(`Starting batch favicon prefetch for ${urls.length} URLs`);
+
+  const CONCURRENT_LIMIT = 5;
+  const DELAY_BETWEEN_BATCHES = 100;
+
+  const cache = getFaviconCache();
+
+  const urlsToFetch: string[] = [];
+  urls.forEach(url => {
+    if (!url) return;
+
+    try {
+      const hostname = getCleanHostname(url);
+      if (cache[hostname]) {
+        result.skipped++;
+        if (onProgress) {
+          onProgress(result.successful + result.failed + result.skipped, result.total, url, 'skipped');
+        }
+      } else {
+        urlsToFetch.push(url);
+      }
+    } catch (error) {
+      result.failed++;
+      if (onProgress) {
+        onProgress(result.successful + result.failed + result.skipped, result.total, url, 'failed');
+      }
+    }
+  });
+
+  console.log(`${result.skipped} favicons already cached, fetching ${urlsToFetch.length} new ones`);
+
+  for (let i = 0; i < urlsToFetch.length; i += CONCURRENT_LIMIT) {
+    const batch = urlsToFetch.slice(i, i + CONCURRENT_LIMIT);
+
+    const batchPromises = batch.map(async (url) => {
+      try {
+        const faviconUrl = await getUltimateFavicon(url);
+
+        if (faviconUrl) {
+          result.successful++;
+          if (onProgress) {
+            onProgress(result.successful + result.failed + result.skipped, result.total, url, 'success');
+          }
+        } else {
+          result.failed++;
+          if (onProgress) {
+            onProgress(result.successful + result.failed + result.skipped, result.total, url, 'failed');
+          }
+        }
+      } catch (error) {
+        result.failed++;
+        if (onProgress) {
+          onProgress(result.successful + result.failed + result.skipped, result.total, url, 'failed');
+        }
+      }
+    });
+
+    await Promise.all(batchPromises);
+
+    if (i + CONCURRENT_LIMIT < urlsToFetch.length) {
+      await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
+    }
+  }
+
+  result.duration = Date.now() - startTime;
+
+  console.log(`Batch favicon prefetch completed in ${result.duration}ms:`, {
+    successful: result.successful,
+    failed: result.failed,
+    skipped: result.skipped,
+    total: result.total
+  });
+
+  return result;
+}
+
 (window as any).clearFaviconCache = clearFaviconCache;
 (window as any).getFaviconStats = getFaviconStats;
 (window as any).testBrowserFavicon = testBrowserFavicon;
@@ -437,6 +539,7 @@ export function validateFaviconCache() {
 (window as any).importFaviconCache = importFaviconCache;
 (window as any).refreshFaviconCache = refreshFaviconCache;
 (window as any).validateFaviconCache = validateFaviconCache;
+(window as any).batchPrefetchFavicons = batchPrefetchFavicons;
 
 const FaviconImage = observer(function FaviconImage({ url, title }: FaviconProps) {
   const [faviconUrl, setFaviconUrl] = useState<string>("");
