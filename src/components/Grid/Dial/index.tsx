@@ -460,7 +460,7 @@ const FaviconImage = observer(function FaviconImage({ url, title }: FaviconProps
           setFaviconUrl(result);
           setLoading(false);
         } else {
-          throw new Error('Favicon bulunamadı');
+          throw new Error('Favicon not found');
         }
       } catch (error) {
         setHasError(true);
